@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lettore Codici a Barre</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        video {
+            width: 100%;
+            max-width: 480px;
+            border: 1px solid #ccc;
+        }
+        #barcode {
+            margin-top: 20px;
+            font-size: 1.5em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Scanner Codici a Barre</h1>
+    <video id="video" autoplay></video>
+    <div id="barcode">Codice a Barre: Non Rilevato</div>
+
+    <!-- Carica la libreria QuaggaJS -->
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
+
+    <script>
+        // Funzione per avviare la lettura del codice a barre
+        function startScanner() {
+            // Impostazioni del flusso video
+            const videoElement = document.getElementById('video');
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function(stream) {
+                    videoElement.srcObject = stream;
+
+                    // Inizializza QuaggaJS per leggere i codici a barre
+                    Quagga.init({
+                        inputStream: {
+                            name: "Live",
+                            type: "LiveStream",
+                            target: videoElement, // Usa il video come target
+                            constraints: {
+                                facingMode: "environment" // Usa la fotocamera posteriore
+                            }
+                        },
+                        decoder: {
+                            readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader", "ean_8_reader"] // Formati di codici a barre supportati
+                        }
+                    }, function(err) {
+                        if (err) {
+                            console.error("Errore durante l'inizializzazione:", err);
+                            return;
+                        }
+                        // Avvia la lettura
+                        Quagga.start();
+                    });
+
+                    // Funzione di callback per leggere i codici
+                    Quagga.onDetected(function(result) {
+                        const code = result.codeResult.code; // Codice letto
+                        document.getElementById('barcode').textContent = 'Codice a Barre: ' + code;
+                    });
+                })
+                .catch(function(err) {
+                    alert("Errore nell'accesso alla fotocamera: " + err);
+                });
+        }
+
+        // Avvia il lettore appena la pagina è pronta
+        window.onload = startScanner;
+    </script>
+</body>
+</html>
