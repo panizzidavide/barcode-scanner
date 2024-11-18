@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
-    <title>Scanner Barcode e QR Code - v9 (Stabilizzazione Migliorata)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Barcode e QR Code - v102 (Debug Flusso Video)</title>
     <style>
         body {
             margin: 0;
@@ -55,41 +55,6 @@
             object-fit: cover;
         }
 
-        ul {
-            margin-top: 20px;
-            padding: 0;
-            list-style: none;
-            width: 100%;
-            max-width: 480px;
-        }
-
-        li {
-            padding: 10px;
-            background: #fff;
-            border: 1px solid #ddd;
-            margin-bottom: 5px;
-            font-size: 1em;
-            color: #333;
-            text-align: left;
-        }
-
-        .notification {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            display: none;
-            font-size: 1em;
-        }
-
-        .notification.active {
-            display: block;
-        }
-
         .debug-box {
             margin-top: 20px;
             padding: 10px;
@@ -102,33 +67,43 @@
             height: 80px;
             overflow-y: auto;
         }
+
+        .highlight {
+            color: green;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-    <h1>Scanner Barcode e QR Code - v9 Stabilizzazione Migliorata</h1>
+    <h1>Scanner Codici a Barre - Versione 102</h1>
 
     <div class="controls">
-        <button id="startScan">Avvia Scansione</button>
+        <button id="startVideo">Avvia Video</button>
+        <button id="startScan" disabled>Avvia Scansione</button>
         <button id="stopScan" disabled>Ferma Scansione</button>
     </div>
 
     <div class="scanner-box">
         <video id="video" autoplay playsinline></video>
     </div>
-    <ul id="results">
-        <!-- Codici scansionati -->
-    </ul>
-    <div class="notification" id="notification">Codice scansionato!</div>
-    <div class="debug-box" id="debugBox">Tentativi di lettura...</div>
+    <div id="barcodeDisplay">Codice a Barre: Non Rilevato</div>
+    <div class="debug-box" id="debugBox">Stato: Video non avviato.</div>
 
-    <!-- QuaggaJS Libreria -->
+    <!-- Libreria QuaggaJS -->
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <script>
         let videoElement = document.getElementById("video");
-        let notification = document.getElementById("notification");
         let debugBox = document.getElementById("debugBox");
+        let barcodeDisplay = document.getElementById("barcodeDisplay");
         let isScanning = false;
+        let stream;
 
+        // Avvia il flusso video
+        document.getElementById("startVideo").addEventListener("click", () => {
+            startVideo();
+        });
+
+        // Avvia la scansione del barcode
         document.getElementById("startScan").addEventListener("click", () => {
             startScanning();
         });
@@ -137,7 +112,27 @@
             stopScanning();
         });
 
+        function startVideo() {
+            debugBox.textContent = "Avvio del video...";
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function(mediaStream) {
+                    stream = mediaStream;
+                    videoElement.srcObject = stream;
+                    debugBox.textContent = "Video avviato. In attesa dell'avvio della scansione...";
+                    document.getElementById("startScan").disabled = false; // Abilita la scansione
+                })
+                .catch(function(err) {
+                    debugBox.textContent = "Errore nell'accesso alla fotocamera: " + err;
+                    console.error("Errore nell'accesso alla fotocamera:", err);
+                });
+        }
+
         function startScanning() {
+            if (!stream) {
+                debugBox.textContent = "Errore: Il video non è attivo!";
+                return;
+            }
+
             debugBox.textContent = "Tentativi di lettura...";
             isScanning = true;
 
@@ -154,16 +149,15 @@
                 },
                 decoder: {
                     readers: [
+                        "ean_reader", 
                         "code_128_reader",
-                        "ean_reader",
-                        "upc_reader",
-                        "code_39_reader",
                         "ean_8_reader",
-                        "qr_reader"
+                        "upc_reader",
+                        "code_39_reader"
                     ]
                 },
                 locate: true,
-                frequency: 10 // Alta frequenza di rilevamento
+                frequency: 5
             }, function (err) {
                 if (err) {
                     console.error("Errore scanner: " + err.message);
@@ -176,10 +170,7 @@
 
             Quagga.onProcessed(result => {
                 if (result && result.boxes) {
-                    debugBox.textContent = "In elaborazione..."; // Feedback mentre cerca
-                    result.boxes.filter(box => box !== undefined).forEach(box => {
-                        debugBox.textContent += " Tentativo in corso...";
-                    });
+                    debugBox.textContent = "In elaborazione...";
                 }
             });
 
@@ -187,9 +178,9 @@
                 if (isScanning) {
                     const code = result.codeResult.code;
                     if (code) {
-                        highlightDetectedCode(code);
-                        isScanning = false; // Blocca ulteriori tentativi finché non gestito
-                        setTimeout(() => { isScanning = true; }, 2000); // Rilassamento per 2 secondi per evitare false letture
+                        barcodeDisplay.textContent = `Codice a Barre: ${code}`;
+                        debugBox.textContent = `Codice rilevato: ${code}`;
+                        stabilizeDetection();
                     }
                 }
             });
@@ -208,19 +199,12 @@
             }
         }
 
-        function highlightDetectedCode(code) {
-            debugBox.textContent = `Codice rilevato: ${code}`;
-            const listItem = document.createElement("li");
-            listItem.textContent = code;
-            listItem.classList.add("highlight");
-            document.getElementById("results").appendChild(listItem);
-            showNotification(`Codice scansionato: ${code}`);
-        }
-
-        function showNotification(message) {
-            notification.textContent = message;
-            notification.classList.add("active");
-            setTimeout(() => notification.classList.remove("active"), 2000);
+        function stabilizeDetection() {
+            isScanning = false;
+            setTimeout(() => {
+                isScanning = true;
+                debugBox.textContent += "\nRicomincia la scansione...";
+            }, 1500);
         }
     </script>
 </body>
