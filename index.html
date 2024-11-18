@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner Barcode e QR Code - v5</title>
+    <title>Scanner Barcode e QR Code - v6</title>
     <style>
         body {
             margin: 0;
@@ -62,16 +62,12 @@
             width: 100%;
             height: 4px;
             background: green;
-            animation: scanner 2s linear infinite;
+            animation: bounce 2s ease-in-out infinite;
         }
 
-        .scanner-bar.scanning {
-            background: red;
-        }
-
-        @keyframes scanner {
-            0% { top: 0; }
-            100% { top: calc(100% - 4px); }
+        @keyframes bounce {
+            0%, 100% { top: 0; }
+            50% { top: calc(100% - 4px); }
         }
 
         ul {
@@ -108,27 +104,15 @@
         .notification.active {
             display: block;
         }
-
-        .debug-box {
-            margin-top: 20px;
-            padding: 10px;
-            background: #f1f1f1;
-            border: 1px solid #ddd;
-            font-size: 0.9em;
-            color: #333;
-            width: 100%;
-            max-width: 480px;
-            height: 100px;
-            overflow-y: auto;
-        }
     </style>
 </head>
 <body>
-    <h1>Scanner Barcode e QR Code - v5</h1>
+    <h1>Scanner Barcode e QR Code - v6</h1>
 
     <div class="controls">
         <button id="toggleCamera">Attiva Fotocamera</button>
         <button id="switchCamera">Usa Fotocamera Frontale</button>
+        <button id="scanBarcode">Scansiona Codice</button>
     </div>
 
     <div class="scanner-box">
@@ -139,16 +123,12 @@
         <!-- Codici scansionati -->
     </ul>
     <div class="notification" id="notification">Codice scansionato!</div>
-    <div class="debug-box" id="debugBox">
-        <!-- Debugging output -->
-    </div>
 
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <script>
         let videoElement = document.querySelector("#video");
         let scannerBar = document.querySelector("#scannerBar");
         let notification = document.querySelector("#notification");
-        let debugBox = document.querySelector("#debugBox");
         let cameraActive = false;
         let facingMode = "environment";
         let stream = null;
@@ -171,6 +151,11 @@
             }
         });
 
+        // Bottone "Scansiona Codice"
+        document.getElementById("scanBarcode").addEventListener("click", function () {
+            startBarcodeScanner();
+        });
+
         function startCamera() {
             if (stream) stopCamera();
             navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } })
@@ -181,7 +166,7 @@
                     cameraActive = true;
                 })
                 .catch(err => {
-                    logDebug("Errore: " + err.message);
+                    alert("Errore: " + err.message);
                 });
         }
 
@@ -217,11 +202,10 @@
                 locate: true
             }, function (err) {
                 if (err) {
-                    logDebug("Errore scanner: " + err.message);
+                    console.error("Errore scanner: " + err.message);
                     return;
                 }
                 Quagga.start();
-                logDebug("Scanner avviato.");
             });
 
             Quagga.onDetected(result => {
@@ -230,7 +214,7 @@
                     highlightScanner();
                     showNotification(`Codice scansionato: ${code}`);
                     addCodeToResults(code);
-                    logDebug("Codice rilevato: " + code);
+                    Quagga.stop(); // Ferma la scansione dopo aver rilevato il codice
                 }
             });
         }
@@ -256,13 +240,9 @@
             return Array.from(document.getElementById("results").children).some(li => li.textContent === code);
         }
 
-        function logDebug(message) {
-            const log = document.createElement("div");
-            log.textContent = message;
-            debugBox.appendChild(log);
-        }
-
-        window.onload = startBarcodeScanner;
+        window.onload = function () {
+            startCamera();
+        };
     </script>
 </body>
 </html>
