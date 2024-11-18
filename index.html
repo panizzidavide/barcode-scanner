@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner Barcode e QR Code - v8 (Migliorato)</title>
+    <title>Scanner Barcode e QR Code - Revisione Completa1</title>
     <style>
         body {
             margin: 0;
@@ -102,15 +102,10 @@
             height: 80px;
             overflow-y: auto;
         }
-
-        .highlight {
-            color: green;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
-    <h1>Scanner Barcode e QR Code - v8 Migliorato</h1>
+    <h1>Scanner Barcode e QR Code - Revisione Completa1</h1>
 
     <div class="controls">
         <button id="startScan">Avvia Scansione</button>
@@ -126,13 +121,12 @@
     <div class="notification" id="notification">Codice scansionato!</div>
     <div class="debug-box" id="debugBox">Tentativi di lettura...</div>
 
-    <!-- Aggiunta di QuaggaJS -->
+    <!-- Libreria QuaggaJS -->
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <script>
         let videoElement = document.getElementById("video");
         let notification = document.getElementById("notification");
         let debugBox = document.getElementById("debugBox");
-        let codeReader;
 
         document.getElementById("startScan").addEventListener("click", () => {
             startScanning();
@@ -167,22 +161,26 @@
                     ]
                 },
                 locate: true,
-                frequency: 3 // Maggiore stabilità e precisione
+                frequency: 10 // Rileva più frequentemente per stabilizzare
             }, function (err) {
                 if (err) {
                     console.error("Errore scanner: " + err.message);
+                    debugBox.textContent = "Errore nell'inizializzazione dello scanner.";
                     return;
                 }
                 Quagga.start();
+                debugBox.textContent = "Scanner avviato, in attesa di codici...";
             });
 
-            Quagga.onProcessed((result) => {
+            Quagga.onProcessed(result => {
                 if (result && result.boxes) {
                     debugBox.textContent = "In elaborazione..."; // Feedback mentre cerca
+                } else {
+                    debugBox.textContent = "Tentativi di lettura senza risultato.";
                 }
             });
 
-            Quagga.onDetected((result) => {
+            Quagga.onDetected(result => {
                 const code = result.codeResult.code;
                 if (code) {
                     highlightDetectedCode(code);
