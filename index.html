@@ -65,6 +65,10 @@
             animation: scanner 2s linear infinite;
         }
 
+        .scanner-bar.scanning {
+            background: red; /* Colore barra quando scansiona */
+        }
+
         @keyframes scanner {
             0% { top: 0; }
             100% { top: calc(100% - 4px); }
@@ -87,6 +91,23 @@
             color: #333;
             text-align: left;
         }
+
+        .notification {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: none;
+            font-size: 1em;
+        }
+
+        .notification.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -98,21 +119,24 @@
     </div>
 
     <div class="scanner-box">
-        <div class="scanner-bar"></div>
+        <div class="scanner-bar" id="scannerBar"></div>
         <video id="video" autoplay playsinline></video>
     </div>
     <ul id="results">
         <!-- I codici scansionati verranno aggiunti qui -->
     </ul>
 
+    <div class="notification" id="notification">Codice scansionato!</div>
+
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <script>
         let videoElement = document.querySelector("#video");
+        let scannerBar = document.querySelector("#scannerBar");
+        let notification = document.querySelector("#notification");
         let cameraActive = false;
-        let facingMode = "environment"; // Default: fotocamera posteriore
+        let facingMode = "environment";
         let stream = null;
 
-        // Attiva/Disattiva la fotocamera
         document.getElementById("toggleCamera").addEventListener("click", function () {
             if (cameraActive) {
                 stopCamera();
@@ -123,20 +147,16 @@
             }
         });
 
-        // Cambia fotocamera tra frontale e posteriore
         document.getElementById("switchCamera").addEventListener("click", function () {
             facingMode = facingMode === "environment" ? "user" : "environment";
             this.textContent = facingMode === "environment" ? "Usa Fotocamera Frontale" : "Usa Fotocamera Posteriore";
             if (cameraActive) {
-                startCamera(); // Riavvia la fotocamera con la nuova facingMode
+                startCamera();
             }
         });
 
-        // Avvia la fotocamera
         function startCamera() {
-            if (stream) {
-                stopCamera();
-            }
+            if (stream) stopCamera();
             navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } })
                 .then(mediaStream => {
                     stream = mediaStream;
@@ -145,12 +165,11 @@
                     cameraActive = true;
                 })
                 .catch(err => {
-                    console.error("Errore nell'accesso alla fotocamera:", err);
+                    console.error("Errore:", err);
                     alert("Errore: " + err.message);
                 });
         }
 
-        // Ferma la fotocamera
         function stopCamera() {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
@@ -160,7 +179,6 @@
             cameraActive = false;
         }
 
-        // Inizializza lo scanner
         function startBarcodeScanner() {
             Quagga.init({
                 inputStream: {
@@ -168,9 +186,7 @@
                     type: "LiveStream",
                     target: videoElement,
                     constraints: {
-                        facingMode: facingMode,
-                        width: { min: 640, ideal: 1280, max: 1920 },
-                        height: { min: 480, ideal: 720, max: 1080 }
+                        facingMode: facingMode
                     }
                 },
                 decoder: {
@@ -180,42 +196,50 @@
                         "upc_reader",
                         "code_39_reader",
                         "ean_8_reader",
-                        "qr_reader" // Supporta QR code
+                        "qr_reader"
                     ]
                 },
                 locate: true
             }, function (err) {
                 if (err) {
-                    console.error("Errore inizializzazione scanner:", err);
+                    console.error("Errore scanner:", err);
                     return;
                 }
                 Quagga.start();
             });
 
-            Quagga.onDetected(function (result) {
+            Quagga.onDetected(result => {
                 const code = result.codeResult.code;
                 if (code && !isCodeAlreadyScanned(code)) {
+                    highlightScanner();
+                    showNotification(`Codice scansionato: ${code}`);
                     addCodeToResults(code);
                 }
             });
         }
 
-        // Aggiungi il codice scansionato all'elenco
+        function highlightScanner() {
+            scannerBar.classList.add("scanning");
+            setTimeout(() => scannerBar.classList.remove("scanning"), 1000);
+        }
+
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.classList.add("active");
+            setTimeout(() => notification.classList.remove("active"), 2000);
+        }
+
         function addCodeToResults(code) {
-            const listItem = document.createElement('li');
+            const listItem = document.createElement("li");
             listItem.textContent = code;
-            document.getElementById('results').appendChild(listItem);
+            document.getElementById("results").appendChild(listItem);
         }
 
-        // Controlla se un codice è già stato scansionato
         function isCodeAlreadyScanned(code) {
-            return Array.from(document.getElementById('results').children).some(li => li.textContent === code);
+            return Array.from(document.getElementById("results").children).some(li => li.textContent === code);
         }
 
-        // Avvia lo scanner al caricamento della pagina
-        window.onload = function () {
-            startBarcodeScanner();
-        };
+        window.onload = startBarcodeScanner;
     </script>
 </body>
 </html>
