@@ -133,7 +133,11 @@
         let cameraActive = false;
         let facingMode = "environment";
         let stream = null;
-
+Quagga.onDetected((data) => {
+      console.log("Codice rilevato:", data.codeResult.code);
+      document.getElementById('result').value = data.codeResult.code; // Inserisce il codice nel box
+      Quagga.stop(); // Ferma la scansione dopo aver letto un codice (opzionale)
+    });
         // Pulsanti
         document.getElementById("toggleCamera").addEventListener("click", function () {
             if (cameraActive) {
@@ -248,11 +252,7 @@
             startCamera();
         };
 		
-		 Quagga.onDetected((data) => {
-      console.log("Codice rilevato:", data.codeResult.code);
-      document.getElementById('result').value = data.codeResult.code; // Inserisce il codice nel box
-      Quagga.stop(); // Ferma la scansione dopo aver letto un codice (opzionale)
-    });
+		 
     </script>
 </body>
 </html>
