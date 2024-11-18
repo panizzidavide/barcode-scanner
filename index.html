@@ -19,10 +19,23 @@
             overflow: hidden;
         }
 
-        h1 {
+        .controls {
             margin-top: 10px;
-            font-size: 1.5em;
-            color: #333;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 1em;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
         }
 
         .scanner-box {
@@ -78,6 +91,12 @@
 </head>
 <body>
     <h1>Scanner Barcode e QR Code</h1>
+
+    <div class="controls">
+        <button id="toggleCamera">Attiva Fotocamera</button>
+        <button id="switchCamera">Usa Fotocamera Frontale</button>
+    </div>
+
     <div class="scanner-box">
         <div class="scanner-bar"></div>
         <video id="video" autoplay playsinline></video>
@@ -86,86 +105,116 @@
         <!-- I codici scansionati verranno aggiunti qui -->
     </ul>
 
-    <!-- Import QuaggaJS -->
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
-
     <script>
-        function testCameraAccess() {
-            const videoElement = document.querySelector("#video");
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then(stream => {
-                    videoElement.srcObject = stream;
+        let videoElement = document.querySelector("#video");
+        let cameraActive = false;
+        let facingMode = "environment"; // Default: fotocamera posteriore
+        let stream = null;
+
+        // Attiva/Disattiva la fotocamera
+        document.getElementById("toggleCamera").addEventListener("click", function () {
+            if (cameraActive) {
+                stopCamera();
+                this.textContent = "Attiva Fotocamera";
+            } else {
+                startCamera();
+                this.textContent = "Disattiva Fotocamera";
+            }
+        });
+
+        // Cambia fotocamera tra frontale e posteriore
+        document.getElementById("switchCamera").addEventListener("click", function () {
+            facingMode = facingMode === "environment" ? "user" : "environment";
+            this.textContent = facingMode === "environment" ? "Usa Fotocamera Frontale" : "Usa Fotocamera Posteriore";
+            if (cameraActive) {
+                startCamera(); // Riavvia la fotocamera con la nuova facingMode
+            }
+        });
+
+        // Avvia la fotocamera
+        function startCamera() {
+            if (stream) {
+                stopCamera();
+            }
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } })
+                .then(mediaStream => {
+                    stream = mediaStream;
+                    videoElement.srcObject = mediaStream;
                     videoElement.play();
+                    cameraActive = true;
                 })
                 .catch(err => {
                     console.error("Errore nell'accesso alla fotocamera:", err);
-                    alert("Impossibile accedere alla fotocamera: " + err.message);
+                    alert("Errore: " + err.message);
                 });
         }
 
-        // Funzione per avviare la scansione di codici a barre
-        function startBarcodeScanner() {
-            const videoElement = document.getElementById('video');
-            const resultsList = document.getElementById('results');
+        // Ferma la fotocamera
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            videoElement.srcObject = null;
+            cameraActive = false;
+        }
 
-            // Configurazione di Quagga
+        // Inizializza lo scanner
+        function startBarcodeScanner() {
             Quagga.init({
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
                     target: videoElement,
                     constraints: {
-                        facingMode: "environment", // Usa la fotocamera posteriore
+                        facingMode: facingMode,
                         width: { min: 640, ideal: 1280, max: 1920 },
                         height: { min: 480, ideal: 720, max: 1080 }
                     }
                 },
                 decoder: {
                     readers: [
-                        "code_128_reader", 
-                        "ean_reader", 
-                        "upc_reader", 
-                        "code_39_reader", 
-                        "ean_8_reader", 
+                        "code_128_reader",
+                        "ean_reader",
+                        "upc_reader",
+                        "code_39_reader",
+                        "ean_8_reader",
                         "qr_reader" // Supporta QR code
                     ]
                 },
-                locate: true, // Cerca attivamente i codici
-                debug: true  // Mostra il debug in console
-            }, function(err) {
+                locate: true
+            }, function (err) {
                 if (err) {
                     console.error("Errore inizializzazione scanner:", err);
-                    alert("Errore nell'accesso alla fotocamera: " + err.message);
                     return;
                 }
                 Quagga.start();
             });
 
-            // Callback per i codici scansionati
-            Quagga.onDetected(function(result) {
-                const code = result.codeResult.code; // Codice letto
-                if (!isCodeAlreadyScanned(code)) {
+            Quagga.onDetected(function (result) {
+                const code = result.codeResult.code;
+                if (code && !isCodeAlreadyScanned(code)) {
                     addCodeToResults(code);
                 }
             });
+        }
 
-            // Aggiungi il codice scansionato all'elenco
-            function addCodeToResults(code) {
-                const listItem = document.createElement('li');
-                listItem.textContent = code;
-                resultsList.appendChild(listItem);
-            }
+        // Aggiungi il codice scansionato all'elenco
+        function addCodeToResults(code) {
+            const listItem = document.createElement('li');
+            listItem.textContent = code;
+            document.getElementById('results').appendChild(listItem);
+        }
 
-            // Controlla se un codice è già stato scansionato
-            function isCodeAlreadyScanned(code) {
-                return Array.from(resultsList.children).some(li => li.textContent === code);
-            }
+        // Controlla se un codice è già stato scansionato
+        function isCodeAlreadyScanned(code) {
+            return Array.from(document.getElementById('results').children).some(li => li.textContent === code);
         }
 
         // Avvia lo scanner al caricamento della pagina
-        window.onload = function() {
-            testCameraAccess(); // Verifica fotocamera
-            startBarcodeScanner(); // Avvia scanner
+        window.onload = function () {
+            startBarcodeScanner();
         };
     </script>
 </body>
