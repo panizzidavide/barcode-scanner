@@ -1,71 +1,84 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scanner Barcode</title>
-  <script src="https://unpkg.com/quagga/dist/quagga.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background-color: #f7f7f7;
-    }
-    video {
-      width: 90%;
-      max-width: 400px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-    input {
-      width: 90%;
-      max-width: 400px;
-      padding: 10px;
-      font-size: 18px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      text-align: center;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lettore Codici a Barre</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        video {
+            width: 100%;
+            max-width: 480px;
+            border: 1px solid #ccc;
+        }
+        #barcode {
+            margin-top: 20px;
+            font-size: 1.5em;
+        }
+    </style>
 </head>
 <body>
-  <h1>Scanner Barcode</h1>
-  <video id="video" autoplay></video>
-  <input type="text" id="result" placeholder="Codice rilevato qui" readonly>
+    <h1>Scanner Codici a Barre</h1>
+    <video id="video" autoplay></video>
+    <div id="barcode">Codice a Barre: Non Rilevato</div>
 
-  <script>
-    // Configurazione QuaggaJS
-    Quagga.init({
-      inputStream: {
-        name: "Live",
-        type: "LiveStream",
-        target: document.querySelector('#video'), // Elemento video per mostrare il feed
-      },
-      decoder: {
-        readers: ["code_128_reader", "ean_reader", "upc_reader"], // Supporta diversi formati
-      }
-    }, (err) => {
-      if (err) {
-        console.error("Errore durante l'inizializzazione:", err);
-        return;
-      }
-      console.log("Quagga inizializzato con successo");
-      Quagga.start(); // Avvia lo scanner
-    });
+    <!-- Carica la libreria QuaggaJS -->
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
-    // Event listener per il codice rilevato
-    Quagga.onDetected((data) => {
-      console.log("Codice rilevato:", data.codeResult.code);
-      document.getElementById('result').value = data.codeResult.code; // Inserisce il codice nel box
-      Quagga.stop(); // Ferma la scansione dopo aver letto un codice (opzionale)
-    });
-  </script>
+    <script>
+        // Funzione per avviare la lettura del codice a barre
+        function startScanner() {
+            // Impostazioni del flusso video
+            const videoElement = document.getElementById('video');
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function(stream) {
+                    videoElement.srcObject = stream;
+
+                    // Inizializza QuaggaJS per leggere i codici a barre
+                    Quagga.init({
+                        inputStream: {
+                            name: "Live",
+                            type: "LiveStream",
+                            target: videoElement, // Usa il video come target
+                            constraints: {
+                                facingMode: "environment" // Usa la fotocamera posteriore
+                            }
+                        },
+                        decoder: {
+                            readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader", "ean_8_reader"] // Formati di codici a barre supportati
+                        }
+                    }, function(err) {
+                        if (err) {
+                            console.error("Errore durante l'inizializzazione:", err);
+                            return;
+                        }
+                        // Avvia la lettura
+                        Quagga.start();
+                    });
+
+                    // Funzione di callback per leggere i codici
+                    Quagga.onDetected(function(result) {
+                        const code = result.codeResult.code; // Codice letto
+                        document.getElementById('barcode').textContent = 'Codice a Barre: ' + code;
+                    });
+                })
+                .catch(function(err) {
+                    alert("Errore nell'accesso alla fotocamera: " + err);
+                });
+        }
+
+        // Avvia il lettore appena la pagina è pronta
+        window.onload = startScanner;
+    </script>
 </body>
 </html>
