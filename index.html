@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <meta charset="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner Barcode e QR Code - Revisione Completa1</title>
+    <title>Scanner Barcode e QR Code - v9 (Stabilizzazione Migliorata)</title>
     <style>
         body {
             margin: 0;
@@ -105,7 +105,7 @@
     </style>
 </head>
 <body>
-    <h1>Scanner Barcode e QR Code - Revisione Completa1</h1>
+    <h1>Scanner Barcode e QR Code - v9 Stabilizzazione Migliorata</h1>
 
     <div class="controls">
         <button id="startScan">Avvia Scansione</button>
@@ -121,12 +121,13 @@
     <div class="notification" id="notification">Codice scansionato!</div>
     <div class="debug-box" id="debugBox">Tentativi di lettura...</div>
 
-    <!-- Libreria QuaggaJS -->
+    <!-- QuaggaJS Libreria -->
     <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <script>
         let videoElement = document.getElementById("video");
         let notification = document.getElementById("notification");
         let debugBox = document.getElementById("debugBox");
+        let isScanning = false;
 
         document.getElementById("startScan").addEventListener("click", () => {
             startScanning();
@@ -138,6 +139,7 @@
 
         function startScanning() {
             debugBox.textContent = "Tentativi di lettura...";
+            isScanning = true;
 
             Quagga.init({
                 inputStream: {
@@ -161,7 +163,7 @@
                     ]
                 },
                 locate: true,
-                frequency: 10 // Rileva più frequentemente per stabilizzare
+                frequency: 10 // Alta frequenza di rilevamento
             }, function (err) {
                 if (err) {
                     console.error("Errore scanner: " + err.message);
@@ -175,16 +177,20 @@
             Quagga.onProcessed(result => {
                 if (result && result.boxes) {
                     debugBox.textContent = "In elaborazione..."; // Feedback mentre cerca
-                } else {
-                    debugBox.textContent = "Tentativi di lettura senza risultato.";
+                    result.boxes.filter(box => box !== undefined).forEach(box => {
+                        debugBox.textContent += " Tentativo in corso...";
+                    });
                 }
             });
 
             Quagga.onDetected(result => {
-                const code = result.codeResult.code;
-                if (code) {
-                    highlightDetectedCode(code);
-                    stopScanning(); // Ferma la scansione una volta rilevato un codice
+                if (isScanning) {
+                    const code = result.codeResult.code;
+                    if (code) {
+                        highlightDetectedCode(code);
+                        isScanning = false; // Blocca ulteriori tentativi finché non gestito
+                        setTimeout(() => { isScanning = true; }, 2000); // Rilassamento per 2 secondi per evitare false letture
+                    }
                 }
             });
 
@@ -198,6 +204,7 @@
                 debugBox.textContent = "Scansione interrotta.";
                 document.getElementById("startScan").disabled = false;
                 document.getElementById("stopScan").disabled = true;
+                isScanning = false;
             }
         }
 
