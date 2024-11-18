@@ -3,146 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner Barcode e QR Code con ZXing</title>
+    <title>Lettore Codici a Barre</title>
     <style>
         body {
+            font-family: Arial, sans-serif;
+            text-align: center;
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            text-align: center;
-            background-color: #f5f5f5;
-            height: 100vh;
-            overflow: hidden;
         }
-
-        .controls {
-            margin-top: 10px;
-        }
-
-        button {
-            margin: 5px;
-            padding: 10px 20px;
-            font-size: 1em;
-            border: none;
-            background-color: #007bff;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        .scanner-box {
-            position: relative;
-            width: 100%;
-            max-width: 480px;
-            height: 60%;
-            margin-top: 10px;
-            overflow: hidden;
-            border: 2px solid #ddd;
-            background: #000;
-        }
-
         video {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        ul {
-            margin-top: 20px;
-            padding: 0;
-            list-style: none;
-            width: 100%;
             max-width: 480px;
+            border: 1px solid #ccc;
         }
-
-        li {
-            padding: 10px;
-            background: #fff;
-            border: 1px solid #ddd;
-            margin-bottom: 5px;
-            font-size: 1em;
-            color: #333;
-            text-align: left;
+        #barcode {
+            margin-top: 20px;
+            font-size: 1.5em;
         }
     </style>
 </head>
 <body>
-    <h1>Scanner Barcode e QR Code - ZXing</h1>
+    <h1>Scanner Codici a Barre</h1>
+    <video id="video" autoplay></video>
+    <div id="barcode">Codice a Barre: Non Rilevato</div>
 
-    <div class="controls">
-        <button id="startScan">Avvia Scansione</button>
-        <button id="stopScan" disabled>Ferma Scansione</button>
-    </div>
+    <!-- Carica la libreria QuaggaJS -->
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 
-    <div class="scanner-box">
-        <video id="video" autoplay playsinline></video>
-    </div>
-    <ul id="results">
-        <!-- Codici scansionati -->
-    </ul>
-
-    <!-- Aggiunge ZXing libreria per la scansione -->
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script>
-        let selectedDeviceId;
-        let codeReader;
-        let videoElement = document.getElementById("video");
-        const resultsElement = document.getElementById("results");
+        // Funzione per avviare la lettura del codice a barre
+        function startScanner() {
+            // Impostazioni del flusso video
+            const videoElement = document.getElementById('video');
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function(stream) {
+                    videoElement.srcObject = stream;
 
-        document.getElementById("startScan").addEventListener("click", () => {
-            startScanning();
-        });
-
-        document.getElementById("stopScan").addEventListener("click", () => {
-            stopScanning();
-        });
-
-        function startScanning() {
-            codeReader = new ZXing.BrowserMultiFormatReader();
-
-            ZXing.BrowserMultiFormatReader.listVideoInputDevices()
-                .then(videoInputDevices => {
-                    selectedDeviceId = videoInputDevices[0].deviceId;
-
-                    codeReader.decodeFromVideoDevice(selectedDeviceId, "video", (result, err) => {
-                        if (result) {
-                            displayResult(result.text);
+                    // Inizializza QuaggaJS per leggere i codici a barre
+                    Quagga.init({
+                        inputStream: {
+                            name: "Live",
+                            type: "LiveStream",
+                            target: videoElement, // Usa il video come target
+                            constraints: {
+                                facingMode: "environment" // Usa la fotocamera posteriore
+                            }
+                        },
+                        decoder: {
+                            readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader", "ean_8_reader"] // Formati di codici a barre supportati
                         }
-                        if (err && !(err instanceof ZXing.NotFoundException)) {
-                            console.error(err);
+                    }, function(err) {
+                        if (err) {
+                            console.error("Errore durante l'inizializzazione:", err);
+                            return;
                         }
+                        // Avvia la lettura
+                        Quagga.start();
                     });
 
-                    document.getElementById("startScan").disabled = true;
-                    document.getElementById("stopScan").disabled = false;
+                    // Funzione di callback per leggere i codici
+                    Quagga.onDetected(function(result) {
+                        const code = result.codeResult.code; // Codice letto
+                        document.getElementById('barcode').textContent = 'Codice a Barre: ' + code;
+                    });
                 })
-                .catch(err => {
-                    console.error(err);
+                .catch(function(err) {
+                    alert("Errore nell'accesso alla fotocamera: " + err);
                 });
         }
 
-        function stopScanning() {
-            if (codeReader) {
-                codeReader.reset();
-                document.getElementById("startScan").disabled = false;
-                document.getElementById("stopScan").disabled = true;
-            }
-        }
-
-        function displayResult(code) {
-            const listItem = document.createElement("li");
-            listItem.textContent = code;
-            resultsElement.appendChild(listItem);
-            stopScanning(); // Ferma la scansione dopo la rilevazione di un codice
-        }
+        // Avvia il lettore appena la pagina è pronta
+        window.onload = startScanner;
     </script>
 </body>
 </html>
