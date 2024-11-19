@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner Barcode e QR Code - v102 (Debug Flusso Video)</title>
+    <title>Scanner Barcode e QR Code - v104 (Integrazione Scandit)</title>
     <style>
         body {
             margin: 0;
@@ -49,162 +49,71 @@
             background: #000;
         }
 
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .debug-box {
-            margin-top: 20px;
-            padding: 10px;
-            background: #f1f1f1;
-            border: 1px solid #ddd;
-            font-size: 0.9em;
-            color: #333;
-            width: 100%;
-            max-width: 480px;
-            height: 80px;
-            overflow-y: auto;
-        }
-
         .highlight {
             color: green;
             font-weight: bold;
         }
+
+        #barcode-scanner {
+            width: 100%;
+            height: 100%;
+        }
     </style>
+    <!-- Carica lo script Scandit -->
+    <script src="https://cdn.jsdelivr.net/npm/scandit-sdk/build/scandit-sdk.min.js"></script>
 </head>
 <body>
-    <h1>Scanner Codici a Barre - Versione 102</h1>
+    <h1>Scanner Codici a Barre - Versione 104</h1>
 
     <div class="controls">
-        <button id="startVideo">Avvia Video</button>
-        <button id="startScan" disabled>Avvia Scansione</button>
+        <button id="startScan">Avvia Scansione</button>
         <button id="stopScan" disabled>Ferma Scansione</button>
     </div>
 
-    <div class="scanner-box">
-        <video id="video" autoplay playsinline></video>
-    </div>
+    <div class="scanner-box" id="barcode-scanner"></div>
     <div id="barcodeDisplay">Codice a Barre: Non Rilevato</div>
-    <div class="debug-box" id="debugBox">Stato: Video non avviato.</div>
 
-    <!-- Libreria QuaggaJS -->
-    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
     <script>
-        let videoElement = document.getElementById("video");
-        let debugBox = document.getElementById("debugBox");
-        let barcodeDisplay = document.getElementById("barcodeDisplay");
-        let isScanning = false;
-        let stream;
+        // Inizializza la chiave SDK di Scandit
+        ScanditSDK.configure("AvllOmKfR0ToHBjdjjiFPLk82euRNWE/x0AXlWgRmPLKZ0DC+w10aAxUqMxKchRjumzloXQ9YNtnZv7PDEujeUN1vdAKIGPPxEF2C/oCKJEUXZw51hz4CWcpSULhOJWh+Tmf+Il+RHQKaFqduUOx09JgEiXPaHkQdTyodF0n6zoEXhd8IVroxRhKqgDZBhlYDSXqOjEmMfXGXoFEomcLIONAoSuPOp800y8UUAExgZNaMh6JeBp9QZB2vfP2RtTfMgSSb+JpVFcKI8KBNjPwiuwVvfc9AZvaKRR9dqUW4yuRJimQoS7Xqg8RDvr/GGkhkBAkT4cokOFyOESyITcxxwExUda0NiUlj00uO+FSwWXNWczNs3qjJWIfZ3sJcAYnXHPEjnRNHraERVBBAQ9gU2Fn7B8QTy219nC5JL8EUUEhUxjHWzI+OsJJWQ61bQseBHY2A4B4ENi0ecx+vhMasEtmydL4eKsbC08BTU4grjiebC7KdltaWJkbvsBiPSIbI0EuophScouXM9p1YgxW0MVpEho1Yf3+pUZ1F4J0l0AjEkxp+iuK+RpqoYK5SgYq0lxkNc59agJlWOskO01DHzl/L+4NfzM3YkMH/6wSUC5qRIEkiVKHXW1UYGZIQ/o/9Tnpw7BVlnpDDh+F1181VIIegXq8RZx5I0+cKvhuEPsYRCPW3nss4Fd0Sph0Y3pZdxjwYS5SBNo4QLhSSG1MBopPgN4LZZdyxQsu4L1bx3zqVoSKMDMcWcRAFCFFr0b9v2ZDcTWyUDzcmdYBOcKKsRL6VdrkG5ri2VPI7sZAMj7LhQCaq97sgrrZgpYEVfph+poqmYv2KVyBiLni5uGljASZUn47iNkAVqBV5ef5VVICGMxLPe9jLegCvIXNFouXF56usqRc3BkXrdVw+ipWQ6z9sZNUJebzvykQt0F/aJchX8awYkGBf1wJnahO+RI3EApmUr8itcq7vR9NYsFBQyYMDv+P/nYslsSq73Wh0bQZVJWlIJR87tcdiN7Zo1dFn5MkJu97cWWXmU5NPVGXFYyftxp1y0CMQOTCmr++foW9O143gk7v5Q8uL6OJ2N9zk7S1I6tZW0ES084LsprVyZuq3kztcoaeAvOdW21eSXJyOr0XlOzbJJVWTp4NTzI2dYbl/r45SAf7ERL3fwFJjIS3cBjHzyOcS2fH40ge0G6EHcVNRO3hmHMKHPd7zxZfVuy9ssMpx7ahkdYz/10tNB8/IDwoOH2JCbIaujKe9t11VrCYQZ9RfScQJOUp1/qaWLece2EKnLNsGrptEpnJrzTxwiTZlFSF4O0Lzp3sO9L2k++2iiG9qmmhN1JWkgkgAgf/yNeD7qPdqiGwpJ8WjFn5zQaCHtCBFKUPuAtcIuikPiCbo9LJuv5mOJXLWrrQV/3TC9W0PAuWMp4e+zsJdtURB0gmXBN9bzV8WA==", {
+            engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk/build/"
+        }).then(() => {
+            // Configura gli eventi dei pulsanti
+            document.getElementById("startScan").addEventListener("click", () => {
+                startScanning();
+            });
 
-        // Avvia il flusso video
-        document.getElementById("startVideo").addEventListener("click", () => {
-            startVideo();
+            document.getElementById("stopScan").addEventListener("click", () => {
+                stopScanning();
+            });
+        }).catch(error => {
+            console.error("Errore durante l'inizializzazione di Scandit:", error);
         });
 
-        // Avvia la scansione del barcode
-        document.getElementById("startScan").addEventListener("click", () => {
-            startScanning();
-        });
-
-        document.getElementById("stopScan").addEventListener("click", () => {
-            stopScanning();
-        });
-
-        function startVideo() {
-            debugBox.textContent = "Avvio del video...";
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-                .then(function(mediaStream) {
-                    stream = mediaStream;
-                    videoElement.srcObject = stream;
-                    debugBox.textContent = "Video avviato. In attesa dell'avvio della scansione...";
-                    document.getElementById("startScan").disabled = false; // Abilita la scansione
-                })
-                .catch(function(err) {
-                    debugBox.textContent = "Errore nell'accesso alla fotocamera: " + err;
-                    console.error("Errore nell'accesso alla fotocamera:", err);
-                });
-        }
+        let barcodePicker;
 
         function startScanning() {
-            if (!stream) {
-                debugBox.textContent = "Errore: Il video non è attivo!";
-                return;
-            }
-
-            debugBox.textContent = "Tentativi di lettura...";
-            isScanning = true;
-
-            Quagga.init({
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: videoElement,
-                    constraints: {
-                        facingMode: "environment",
-                        width: { min: 640, ideal: 1280, max: 1920 },
-                        height: { min: 480, ideal: 720, max: 1080 }
-                    }
-                },
-                decoder: {
-                    readers: [
-                        "ean_reader", 
-                        "code_128_reader",
-                        "ean_8_reader",
-                        "upc_reader",
-                        "code_39_reader"
-                    ]
-                },
-                locate: true,
-                frequency: 5
-            }, function (err) {
-                if (err) {
-                    console.error("Errore scanner: " + err.message);
-                    debugBox.textContent = "Errore nell'inizializzazione dello scanner.";
-                    return;
-                }
-                Quagga.start();
-                debugBox.textContent = "Scanner avviato, in attesa di codici...";
+            ScanditSDK.BarcodePicker.create(document.getElementById("barcode-scanner"), {
+                playSoundOnScan: true,
+                vibrateOnScan: true,
+                accessCamera: true
+            }).then(picker => {
+                barcodePicker = picker;
+                barcodePicker.on("scan", (scanResult) => {
+                    document.getElementById("barcodeDisplay").textContent = 'Codice a Barre: ' + scanResult.barcodes[0].data;
+                });
+                document.getElementById("startScan").disabled = true;
+                document.getElementById("stopScan").disabled = false;
             });
-
-            Quagga.onProcessed(result => {
-                if (result && result.boxes) {
-                    debugBox.textContent = "In elaborazione...";
-                }
-            });
-
-            Quagga.onDetected(result => {
-                if (isScanning) {
-                    const code = result.codeResult.code;
-                    if (code) {
-                        barcodeDisplay.textContent = `Codice a Barre: ${code}`;
-                        debugBox.textContent = `Codice rilevato: ${code}`;
-                        stabilizeDetection();
-                    }
-                }
-            });
-
-            document.getElementById("startScan").disabled = true;
-            document.getElementById("stopScan").disabled = false;
         }
 
         function stopScanning() {
-            if (Quagga) {
-                Quagga.stop();
-                debugBox.textContent = "Scansione interrotta.";
+            if (barcodePicker) {
+                barcodePicker.destroy();
                 document.getElementById("startScan").disabled = false;
                 document.getElementById("stopScan").disabled = true;
-                isScanning = false;
+                document.getElementById("barcodeDisplay").textContent = 'Codice a Barre: Non Rilevato';
             }
-        }
-
-        function stabilizeDetection() {
-            isScanning = false;
-            setTimeout(() => {
-                isScanning = true;
-                debugBox.textContent += "\nRicomincia la scansione...";
-            }, 1500);
         }
     </script>
 </body>
