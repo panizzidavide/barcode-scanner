@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner Barcode - v107 (Solo Scandit)</title>
+    <title>Scanner Barcode - v108 (Debug Esteso con Scandit)</title>
     <style>
         body {
             margin: 0;
@@ -44,18 +44,32 @@
             height: 60%;
             border: 2px solid #ddd;
             margin-top: 10px;
+            background-color: #000; /* Sfondo nero per vedere eventuali problemi di rendering */
         }
 
         .highlight {
             color: green;
             font-weight: bold;
         }
+
+        .debug-box {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f1f1f1;
+            border: 1px solid #ddd;
+            font-size: 0.9em;
+            color: #333;
+            width: 100%;
+            max-width: 480px;
+            height: 100px;
+            overflow-y: auto;
+        }
     </style>
     <!-- Scandit SDK -->
     <script src="https://cdn.jsdelivr.net/npm/scandit-sdk/build/scandit-sdk.min.js"></script>
 </head>
 <body>
-    <h1>Scanner Codici a Barre - Versione 107</h1>
+    <h1>Scanner Codici a Barre - Versione 108 (Debug)</h1>
 
     <div id="barcodeDisplay">Codice a Barre: Non Rilevato</div>
 
@@ -66,27 +80,26 @@
 
     <div id="barcode-scanner"></div>
 
+    <div class="debug-box" id="debugBox">Stato: In attesa di azioni...</div>
+
     <script>
         let barcodePicker;
+        let debugBox = document.getElementById("debugBox");
 
         // Inizializza Scandit con la tua licenza
         ScanditSDK.configure("AvllOmKfR0ToHBjdjjiFPLk82euRNWE/x0AXlWgRmPLKZ0DC+w10aAxUqMxKchRjumzloXQ9YNtnZv7PDEujeUN1vdAKIGPPxEF2C/oCKJEUXZw51hz4CWcpSULhOJWh+Tmf+Il+RHQKaFqduUOx09JgEiXPaHkQdTyodF0n6zoEXhd8IVroxRhKqgDZBhlYDSXqOjEmMfXGXoFEomcLIONAoSuPOp800y8UUAExgZNaMh6JeBp9QZB2vfP2RtTfMgSSb+JpVFcKI8KBNjPwiuwVvfc9AZvaKRR9dqUW4yuRJimQoS7Xqg8RDvr/GGkhkBAkT4cokOFyOESyITcxxwExUda0NiUlj00uO+FSwWXNWczNs3qjJWIfZ3sJcAYnXHPEjnRNHraERVBBAQ9gU2Fn7B8QTy219nC5JL8EUUEhUxjHWzI+OsJJWQ61bQseBHY2A4B4ENi0ecx+vhMasEtmydL4eKsbC08BTU4grjiebC7KdltaWJkbvsBiPSIbI0EuophScouXM9p1YgxW0MVpEho1Yf3+pUZ1F4J0l0AjEkxp+iuK+RpqoYK5SgYq0lxkNc59agJlWOskO01DHzl/L+4NfzM3YkMH/6wSUC5qRIEkiVKHXW1UYGZIQ/o/9Tnpw7BVlnpDDh+F1181VIIegXq8RZx5I0+cKvhuEPsYRCPW3nss4Fd0Sph0Y3pZdxjwYS5SBNo4QLhSSG1MBopPgN4LZZdyxQsu4L1bx3zqVoSKMDMcWcRAFCFFr0b9v2ZDcTWyUDzcmdYBOcKKsRL6VdrkG5ri2VPI7sZAMj7LhQCaq97sgrrZgpYEVfph+poqmYv2KVyBiLni5uGljASZUn47iNkAVqBV5ef5VVICGMxLPe9jLegCvIXNFouXF56usqRc3BkXrdVw+ipWQ6z9sZNUJebzvykQt0F/aJchX8awYkGBf1wJnahO+RI3EApmUr8itcq7vR9NYsFBQyYMDv+P/nYslsSq73Wh0bQZVJWlIJR87tcdiN7Zo1dFn5MkJu97cWWXmU5NPVGXFYyftxp1y0CMQOTCmr++foW9O143gk7v5Q8uL6OJ2N9zk7S1I6tZW0ES084LsprVyZuq3kztcoaeAvOdW21eSXJyOr0XlOzbJJVWTp4NTzI2dYbl/r45SAf7ERL3fwFJjIS3cBjHzyOcS2fH40ge0G6EHcVNRO3hmHMKHPd7zxZfVuy9ssMpx7ahkdYz/10tNB8/IDwoOH2JCbIaujKe9t11VrCYQZ9RfScQJOUp1/qaWLece2EKnLNsGrptEpnJrzTxwiTZlFSF4O0Lzp3sO9L2k++2iiG9qmmhN1JWkgkgAgf/yNeD7qPdqiGwpJ8WjFn5zQaCHtCBFKUPuAtcIuikPiCbo9LJuv5mOJXLWrrQV/3TC9W0PAuWMp4e+zsJdtURB0gmXBN9bzV8WA==", {
             engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk/build/"
         }).then(() => {
-            // Configura gli eventi dei pulsanti
-            document.getElementById("startScan").addEventListener("click", () => {
-                startScanning();
-            });
-
-            document.getElementById("stopScan").addEventListener("click", () => {
-                stopScanning();
-            });
+            debugBox.textContent = "SDK di Scandit configurato correttamente.";
+            document.getElementById("startScan").addEventListener("click", startScanning);
+            document.getElementById("stopScan").addEventListener("click", stopScanning);
         }).catch(error => {
+            debugBox.textContent = "Errore durante l'inizializzazione di Scandit: " + error;
             console.error("Errore durante l'inizializzazione di Scandit:", error);
         });
 
         function startScanning() {
-            // Utilizza Scandit per avviare direttamente la scansione
+            debugBox.textContent = "Tentativo di avvio dello scanner...";
             ScanditSDK.BarcodePicker.create(document.getElementById("barcode-scanner"), {
                 playSoundOnScan: true,
                 vibrateOnScan: true,
@@ -95,11 +108,14 @@
                 barcodePicker = picker;
                 barcodePicker.on("scan", (scanResult) => {
                     document.getElementById("barcodeDisplay").textContent = 'Codice a Barre: ' + scanResult.barcodes[0].data;
+                    debugBox.textContent = "Codice rilevato: " + scanResult.barcodes[0].data;
                 });
                 document.getElementById("startScan").disabled = true;
                 document.getElementById("stopScan").disabled = false;
+                debugBox.textContent = "Scanner avviato correttamente.";
             }).catch(err => {
-                console.error("Errore nell'avviare lo scanner di Scandit:", err);
+                debugBox.textContent = "Errore nell'avvio dello scanner di Scandit: " + err;
+                console.error("Errore nell'avvio dello scanner di Scandit:", err);
             });
         }
 
@@ -110,6 +126,7 @@
                 document.getElementById("startScan").disabled = false;
                 document.getElementById("stopScan").disabled = true;
                 document.getElementById("barcodeDisplay").textContent = 'Codice a Barre: Non Rilevato';
+                debugBox.textContent = "Scanner fermato.";
             }
         }
     </script>
